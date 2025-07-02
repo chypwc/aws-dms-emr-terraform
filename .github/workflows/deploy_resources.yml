@@ -95,7 +95,7 @@ jobs:
         if: ${{ github.event.inputs.deployEMR == 'true' }}
         id: tf-output
         run: |
-          SOURCE_BUCKET=$(terraform output -raw source_bucket)
+          SOURCE_BUCKET=$(cd environments/dev && terraform output -raw source_bucket)
           echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> "$GITHUB_ENV"
 
       # - name: Compute hash and rename script
