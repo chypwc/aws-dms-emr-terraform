@@ -39,8 +39,8 @@ jobs:
       run:
         working-directory: environments/dev
 
-    # env:
-    #   TF_VERSION: 1.6.0
+    env:
+      TF_VERSION: 1.6.0
 
     steps:
       - name: Configure AWS credentials
@@ -54,10 +54,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # - name: Setup Terraform
-      #   uses: hashicorp/setup-terraform@v2
-      #   with:
-      #     terraform_version: ${{ env.TF_VERSION }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
 
       - name: Terraform Init
         run: terraform init
