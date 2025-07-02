@@ -16,7 +16,7 @@ resource "aws_mwaa_environment" "this" {
   source_bucket_arn    = var.dag_bucket_arn
   execution_role_arn   = aws_iam_role.mwaa_exec.arn
   network_configuration {
-    security_group_ids = [] # Optionally add one
+    security_group_ids = var.mwaa_security_group_id
     subnet_ids         = var.private_subnet_ids
   }
   webserver_access_mode = "PUBLIC_ONLY"

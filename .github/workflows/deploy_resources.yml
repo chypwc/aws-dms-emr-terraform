@@ -63,6 +63,9 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      # - name: Install boto3 for external data script
+      #   run: pip3 install boto3
+
       - name: Terraform Init
         run: terraform init
 

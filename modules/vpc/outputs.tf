@@ -46,3 +46,8 @@ output "emr_core_sg_id" {
 output "emr_service_access_sg_id" {
   value = aws_security_group.emr_service_access_sg.id
 }
+
+output "mwaa_security_group_id" {
+  value = aws_security_group.mwaa.id
+}
+

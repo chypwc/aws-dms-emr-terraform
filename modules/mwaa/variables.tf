@@ -15,3 +15,7 @@ variable "dag_bucket_name" {
   type        = string
   description = "S3 bucket name where DAGs are stored"
 }
+
+variable "mwaa_security_group_id" {
+  description = "MWAA security groups"
+}

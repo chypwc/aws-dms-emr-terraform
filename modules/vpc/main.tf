@@ -294,3 +294,31 @@ resource "aws_security_group_rule" "emr_service_access_ingress_from_master" {
   source_security_group_id = aws_security_group.emr_master_sg.id
   description              = "Allow EMR Master SG on port 9443"
 }
+
+# MWAA security groups
+resource "aws_security_group" "mwaa" {
+  name        = "${var.env}-mwaa-sg"
+  description = "Security group for MWAA"
+  vpc_id      = aws_vpc.main.id
+
+  # Allow outbound internet access
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion.id]
+    description     = "Allow HTTPS from bastion or other service"
+  }
+
+  tags = {
+    Name = "${var.env}-mwaa-sg"
+  }
+}
+

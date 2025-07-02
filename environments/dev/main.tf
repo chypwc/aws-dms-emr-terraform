@@ -71,10 +71,11 @@ module "emr" {
 }
 
 module "mwaa" {
-  source             = "../../modules/mwaa"
-  vpc_id             = module.vpc.vpc_id
-  private_subnet_ids = [module.vpc.private_subnet_ids[0]]
-  dag_bucket_arn     = module.s3_buckets.bucket_arns[0]
-  dag_bucket_name    = var.source_bucket
-  depends_on         = [module.vpc]
+  source                 = "../../modules/mwaa"
+  vpc_id                 = module.vpc.vpc_id
+  private_subnet_ids     = module.vpc.private_subnet_ids
+  dag_bucket_arn         = module.s3_buckets.bucket_arns[0]
+  dag_bucket_name        = var.source_bucket
+  mwaa_security_group_id = [module.vpc.mwaa_security_group_id]
+  depends_on             = [module.vpc]
 }
