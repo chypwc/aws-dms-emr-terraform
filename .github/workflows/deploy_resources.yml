@@ -60,25 +60,31 @@ jobs:
         run: terraform init
 
       - name: Terraform Format Check
+        working-directory: environments/dev
         run: terraform fmt -check
 
       - name: Terraform Plan
+        working-directory: environments/dev
         run: terraform plan
 
       - name: Terraform Apply S3
         if: ${{ github.event.inputs.deployS3 == 'true' && github.ref == 'refs/heads/main'}} # apply only on main
+        working-directory: environments/dev
         run: terraform apply -auto-approve -target=module.s3
 
       - name: Terraform Apply VPC, EC2
         if: ${{ github.event.inputs.deployEC2 == 'true' && github.ref == 'refs/heads/main'}}
+        working-directory: environments/dev
         run: terraform apply -auto-approve -target=module.vpc -target=module.ec2
 
       - name: Terraform Apply DMS
         if: ${{ github.event.inputs.deployDMS == 'true' && github.ref == 'refs/heads/main'}}
+        working-directory: environments/dev
         run: terraform apply -auto-approve -target=module.dms
 
       - name: Get Terraform Output
         if: ${{ github.event.inputs.deployEMR == 'true' }}
+        working-directory: environments/dev
         id: tf-output
         run: |
           SOURCE_BUCKET=$(terraform output -raw source_bucket)
@@ -99,6 +105,7 @@ jobs:
       # upload script to S3 and deploy EMR script
       - name: Terraform Apply EMR
         if: ${{ github.event.inputs.deployEMR == 'true' && github.ref == 'refs/heads/main'}}
+        working-directory: environments/dev
         run: |
           terraform apply -auto-approve -target=module.emr
 
