@@ -35,8 +35,12 @@ jobs:
     name: Run Terraform
     runs-on: ubuntu-latest
 
-    env:
-      TF_VERSION: 1.6.0
+    defaults:
+      run:
+        working-directory: environments/dev
+
+    # env:
+    #   TF_VERSION: 1.6.0
 
     steps:
       - name: Configure AWS credentials
@@ -50,41 +54,37 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
+      # - name: Setup Terraform
+      #   uses: hashicorp/setup-terraform@v2
+      #   with:
+      #     terraform_version: ${{ env.TF_VERSION }}
 
       - name: Terraform Init
-        working-directory: environments/dev
         run: terraform init
 
       - name: Terraform Format Check
-        working-directory: environments/dev
         run: terraform fmt -check
 
+      - name: Terraform validate
+        run: terraform validate
+
       - name: Terraform Plan
-        working-directory: environments/dev
         run: terraform plan
 
       - name: Terraform Apply S3
         if: ${{ github.event.inputs.deployS3 == 'true' && github.ref == 'refs/heads/main'}} # apply only on main
-        working-directory: environments/dev
         run: terraform apply -auto-approve -target=module.s3
 
       - name: Terraform Apply VPC, EC2
         if: ${{ github.event.inputs.deployEC2 == 'true' && github.ref == 'refs/heads/main'}}
-        working-directory: environments/dev
         run: terraform apply -auto-approve -target=module.vpc -target=module.ec2
 
       - name: Terraform Apply DMS
         if: ${{ github.event.inputs.deployDMS == 'true' && github.ref == 'refs/heads/main'}}
-        working-directory: environments/dev
         run: terraform apply -auto-approve -target=module.dms
 
       - name: Get Terraform Output
         if: ${{ github.event.inputs.deployEMR == 'true' }}
-        working-directory: environments/dev
         id: tf-output
         run: |
           SOURCE_BUCKET=$(terraform output -raw source_bucket)
@@ -99,17 +99,16 @@ jobs:
       - name: Upload pyspark script to S3
         if: ${{ github.event.inputs.deployEMR == 'true' }}
         run: |
-          aws s3 cp ./scripts/pyspark/bronze_to_silver.py s3://$SOURCE_BUCKET/scripts/pyspark/
+          aws s3 cp ./../../scripts/pyspark/bronze_to_silver.py s3://$SOURCE_BUCKET/scripts/pyspark/
           # aws s3 cp ./scripts/pyspark/bronze_to_silver_$HASH.py s3://$SOURCE_BUCKET/scripts/pyapark/
 
       # upload script to S3 and deploy EMR script
       - name: Terraform Apply EMR
         if: ${{ github.event.inputs.deployEMR == 'true' && github.ref == 'refs/heads/main'}}
-        working-directory: environments/dev
         run: |
           terraform apply -auto-approve -target=module.emr
 
       - name: Upload dag script to S3
         if: ${{ github.event.inputs.deployMWAA == 'true' }}
         run: |
-          aws s3 cp .scripts/dag/dms_to_emr_pipelone.py s3://$SOURCE_BUCKET/scripts/dag/
+          aws s3 cp ./../../scripts/dag/dms_to_emr_pipeline.py s3://$SOURCE_BUCKET/scripts/dag/
