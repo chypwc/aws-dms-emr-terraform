@@ -13,8 +13,12 @@ on:
         description: "Deploy S3 bucket?"
         required: true
         default: "false"
+      deployGlueTables:
+        description: "Deploy tables in Glue Catalog?"
+        required: true
+        default: "false"
       deployEC2:
-        description: "Deploy EC2 instance?"
+        description: "Deploy VPC and EC2 instance?"
         required: true
         default: "false"
       deployDMS:
@@ -74,6 +78,10 @@ jobs:
       - name: Terraform Apply S3
         if: ${{ github.event.inputs.deployS3 == 'true' && github.ref == 'refs/heads/main'}} # apply only on main
         run: terraform apply -auto-approve -target=module.s3
+
+      - name: Terraform Apply Glue Databases and Tables
+        if: ${{ github.event.inputs.deployGlueTables == 'true' && github.ref == 'refs/heads/main'}}
+        run: terraform apply -auto-approve -target=module.glue_catalog_table
 
       - name: Terraform Apply VPC, EC2
         if: ${{ github.event.inputs.deployEC2 == 'true' && github.ref == 'refs/heads/main'}}
