@@ -94,13 +94,11 @@ jobs:
         if: ${{ github.event.inputs.deployDMS == 'true' && github.ref == 'refs/heads/main'}}
         run: terraform apply -auto-approve -target=module.dms
 
-      - name: Get Terraform Output
-        if: ${{ github.event.inputs.deployEMR == 'true' }}
-        id: tf-output
+      - name: Extract source bucket from tfvars
+        id: extract-vars
         run: |
-          terraform output -raw source_bucket
-          SOURCE_BUCKET=$(terraform output -raw source_bucket)
-          echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> "$GITHUB_ENV"
+          SOURCE_BUCKET=$(grep 'source_bucket' ./terraform.tfvars | cut -d '=' -f2 | tr -d ' "')
+          echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> $GITHUB_ENV
 
       # - name: Compute hash and rename script
       #   run: |
