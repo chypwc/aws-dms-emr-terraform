@@ -26,7 +26,7 @@ on:
         required: true
         default: "false"
       deployMWAA:
-        description: "Deploy MWAA cluster?"
+        description: "Deploy MWAA dag?"
         required: true
         default: "false"
 
