@@ -25,7 +25,7 @@ on:
         description: "Deploy EMR resources?"
         required: true
         default: "false"
-      deplotMWAA:
+      deployMWAA:
         description: "Deploy MWAA cluster?"
         required: true
         default: "false"
@@ -93,8 +93,8 @@ jobs:
       - name: Upload pyspark script to S3
         if: ${{ github.event.inputs.deployEMR == 'true' }}
         run: |
-          aws s3 cp ./scripts/pyspark/bronze_to_silver.py s3://$SOURCE_BUCKET/scripts/pyapark/
-          # aws s3 cp ./scripts/pyspark/scripts/bronze_to_silver_$HASH.py s3://$SOURCE_BUCKET/scripts/pyapark/
+          aws s3 cp ./scripts/pyspark/bronze_to_silver.py s3://$SOURCE_BUCKET/scripts/pyspark/
+          # aws s3 cp ./scripts/pyspark/bronze_to_silver_$HASH.py s3://$SOURCE_BUCKET/scripts/pyapark/
 
       # upload script to S3 and deploy EMR script
       - name: Terraform Apply EMR
