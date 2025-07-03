@@ -15,13 +15,15 @@ if ! command -v jq &>/dev/null; then
   sudo yum install -y jq
 fi
 
-# Install AWS CLI v2 (if not already available)
-if ! command -v aws &> /dev/null; then
-  sudo yum install -y unzip
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip awscliv2.zip
-  sudo ./aws/install
-fi
+# Remove existing aws CLI v1 if needed
+sudo rm -rf /usr/bin/aws
+
+# Install AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip -q awscliv2.zip
+sudo ./aws/install
+export PATH=/usr/local/bin:$PATH  # ensure the new CLI is found first
+aws --version  # should show aws-cli/2.x.x
 
 # Get MWAA CLI token and hostname
 CLI_JSON=$(aws mwaa --region "$REGION" create-cli-token --name "$ENV_NAME")
