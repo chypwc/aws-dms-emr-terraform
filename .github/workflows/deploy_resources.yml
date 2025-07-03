@@ -88,17 +88,19 @@ jobs:
 
       - name: Terraform Apply VPC, EC2
         if: ${{ github.event.inputs.deployEC2 == 'true' }}
-        run: terraform apply -auto-approve -target=module.vpc -target=module.ec2
+        run: |
+          terraform fresh
+          terraform apply -auto-approve -target=module.vpc -target=module.ec2
 
       - name: Terraform Apply DMS
         if: ${{ github.event.inputs.deployDMS == 'true'}}
         run: terraform apply -auto-approve -target=module.dms
 
-      - name: Extract source bucket from tfvars
-        id: extract-vars
-        run: |
-          SOURCE_BUCKET=$(grep 'source_bucket' ./terraform.tfvars | cut -d '=' -f2 | tr -d ' "')
-          echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> $GITHUB_ENV
+      # - name: Extract source bucket from tfvars
+      #   id: extract-vars
+      #   run: |
+      #     SOURCE_BUCKET=$(grep 'source_bucket' ./terraform.tfvars | cut -d '=' -f2 | tr -d ' "')
+      #     echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> $GITHUB_ENV
 
       # upload script to S3 and deploy EMR script
       - name: Terraform Apply EMR IAM roles, pyspark script
