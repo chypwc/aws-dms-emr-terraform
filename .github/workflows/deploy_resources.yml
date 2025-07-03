@@ -89,7 +89,7 @@ jobs:
       - name: Terraform Apply VPC, EC2
         if: ${{ github.event.inputs.deployEC2 == 'true' }}
         run: |
-          terraform fresh
+          terraform refresh
           terraform apply -auto-approve -target=module.vpc -target=module.ec2
 
       - name: Terraform Apply DMS
