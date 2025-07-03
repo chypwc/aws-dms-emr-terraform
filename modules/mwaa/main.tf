@@ -174,8 +174,7 @@ resource "aws_iam_policy" "mwaa_combined_policy" {
         Action = [
           "airflow:PublishMetrics",
           "airflow:GetEnvironment",
-          "airflow:CreateCliToken",
-          "airflow:WebLogin"
+          "airflow:CreateCliToken"
         ],
         Resource = "arn:aws:airflow:${var.region}:${data.aws_caller_identity.current.account_id}:environment/*"
       },

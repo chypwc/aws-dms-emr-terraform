@@ -1,5 +1,4 @@
 """Airflow DAG to run DMS -> wait -> EMR Spark job"""
-
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.providers.amazon.aws.operators.dms import DmsStartTaskOperator
@@ -13,16 +12,16 @@ import boto3
 from botocore.exceptions import ClientError
 
 # Constants
-DMS_TASK_ARN = "${dms_task_arn}"
-SCRIPT_S3_PATH = "${script_s3_path}"
-LOG_URI = "${log_uri}"
-EMR_ROLE = "${emr_role}"
-EC2_INSTANCE_PROFILE = "${ec2_instance_profile}"
-SUBNET_ID = "${subnet_id}"
+DMS_TASK_ARN = "arn:aws:dms:ap-southeast-2:794038230051:task:PFEKC7XIOVGTXBULAGD4BTNCXM"
+SCRIPT_S3_PATH = "s3://source-bucket-chien/scripts/pyspark/bronze_to_silver.py"
+LOG_URI = "s3://source-bucket-chien/emr-logs/"
+EMR_ROLE = "EMR_DefaultRole"
+EC2_INSTANCE_PROFILE = "emr_ec2_instance_profile"
+SUBNET_ID = "subnet-0e85153f57935e0cd"
 EMR_SECURITY_GROUPS = {
-    "master": "${emr_sg_master}",
-    "core": "${emr_sg_core}",
-    "service": "${emr_sg_service}"
+    "master": "sg-033e5772afa0c3d12",
+    "core": "sg-0decf60199244d66a",
+    "service": "sg-07e6dd4da3823202b"
 }
 
 
@@ -170,4 +169,5 @@ with DAG(
     )
 
     # DAG dependencies
-    start_dms_task >> wait_for_dms >> create_emr_cluster >> add_spark_step >> watch_spark_step >> terminate_emr_cluster
+    # start_dms_task >> wait_for_dms >> create_emr_cluster >> add_spark_step >> watch_spark_step >> terminate_emr_cluster
+    create_emr_cluster >> add_spark_step >> watch_spark_step
