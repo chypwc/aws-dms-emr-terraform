@@ -36,10 +36,10 @@ CLI_RESULTS=$(curl --silent --request POST "https://${WEB_SERVER_HOSTNAME}/aws_m
   --data-raw "dags trigger ${DAG_NAME}")
 
 # Output results
-echo "Output:"
-echo "$CLI_RESULTS" | jq -r '.stdout' | base64 --decode || echo "[No stdout]"
-echo -e "\nErrors:"
-echo "$CLI_RESULTS" | jq -r '.stderr' | base64 --decode || echo "[No stderr]"
+echo "Output:" | tee ~/mwaa_dag_output.log
+echo "$CLI_RESULTS" | jq -r '.stdout' | base64 --decode | tee -a ~/mwaa_dag_output.log || echo "[No stdout]" | tee -a ~/mwaa_dag_output.log
+echo -e "\nErrors:" | tee -a ~/mwaa_dag_output.log
+echo "$CLI_RESULTS" | jq -r '.stderr' | base64 --decode | tee -a ~/mwaa_dag_output.log || echo "[No stderr]" | tee -a ~/mwaa_dag_output.log
 
 # chmod +x trigger_dag.sh
 # ./trigger_dag.sh
