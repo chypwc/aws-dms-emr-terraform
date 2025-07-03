@@ -48,10 +48,7 @@ module "dms" {
   server_name            = module.ec2.postgres_private_ip
 }
 
-# module "eventbridge_lambda" {
-#   source        = "../../modules/eventbridge_lambda"
-#   dms_task_arns = module.dms.dms_task_arns
-# }
+
 
 module "emr" {
   source                            = "../../modules/emr"
@@ -71,11 +68,19 @@ module "emr" {
 }
 
 module "mwaa" {
-  source                 = "../../modules/mwaa"
-  vpc_id                 = module.vpc.vpc_id
-  private_subnet_ids     = module.vpc.private_subnet_ids
-  dag_bucket_arn         = module.s3_buckets.bucket_arns[0]
-  dag_bucket_name        = var.source_bucket
-  mwaa_security_group_id = [module.vpc.mwaa_security_group_id]
-  depends_on             = [module.vpc]
+  source                   = "../../modules/mwaa"
+  region                   = var.region
+  vpc_id                   = module.vpc.vpc_id
+  private_subnet_ids       = module.vpc.private_subnet_ids
+  dag_bucket_arn           = module.s3_buckets.bucket_arns[0]
+  dag_bucket_name          = var.source_bucket
+  mwaa_security_group_id   = [module.vpc.mwaa_security_group_id]
+  depends_on               = [module.vpc]
+  dms_task_arn             = module.dms.dms_task_arn
+  emr_role                 = module.emr.emr_role.name
+  emr_ec2_instance_profile = module.emr.emr_ec2_instance_profile.name
+  subnet_id                = module.vpc.private_subnet_ids[0]
+  emr_sg_master            = module.vpc.emr_managed_master_security_group
+  emr_sg_core              = module.vpc.emr_core_sg_id
+  emr_sg_service           = module.vpc.emr_service_access_sg_id
 }
