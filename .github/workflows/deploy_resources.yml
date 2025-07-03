@@ -94,7 +94,9 @@ jobs:
 
       - name: Terraform Apply DMS
         if: ${{ github.event.inputs.deployDMS == 'true'}}
-        run: terraform apply -auto-approve -target=module.dms
+        run: |
+          terraform refresh
+          terraform apply -auto-approve -target=module.dms
 
       # - name: Extract source bucket from tfvars
       #   id: extract-vars
@@ -112,6 +114,7 @@ jobs:
       - name: Terraform Apply MWAA
         if: ${{ github.event.inputs.deployMWAA == 'true' }}
         run: |
+          terraform refresh
           terraform apply -auto-approve -target=module.mwaa
 
       - name: Trigger MWAA DAG via Bastion
