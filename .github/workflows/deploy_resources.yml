@@ -122,7 +122,7 @@ jobs:
 
           # Get Bastion EC2 Public IP
           PUBLIC_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=bastion-mwaa" "Name=instance-state-name,Values=running" \
+            --filters "Name=tag:Name,Values=dev-bastion-ec2" "Name=instance-state-name,Values=running" \
             --query "Reservations[*].Instances[*].PublicIpAddress" \
             --output text)
 
