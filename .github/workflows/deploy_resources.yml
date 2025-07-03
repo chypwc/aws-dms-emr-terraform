@@ -101,9 +101,10 @@ jobs:
           echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> $GITHUB_ENV
 
       # upload script to S3 and deploy EMR script
-      - name: Terraform Apply EMR IAM policies, pyspark script
+      - name: Terraform Apply EMR IAM roles, pyspark script
         if: ${{ github.event.inputs.deployEMR == 'true' }}
         run: |
+          terraform refresh
           terraform apply -auto-approve -target=module.emr
 
       - name: Terraform Apply MWAA
