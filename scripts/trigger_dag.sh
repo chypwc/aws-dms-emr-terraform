@@ -31,6 +31,18 @@ CLI_JSON=$(aws mwaa --region "$REGION" create-cli-token --name "$ENV_NAME")
 CLI_TOKEN=$(echo "$CLI_JSON" | jq -r '.CliToken')
 WEB_SERVER_HOSTNAME=$(echo "$CLI_JSON" | jq -r '.WebServerHostname')
 
+# Unpause the DAG before triggering
+UNPAUSE_RESULT=$(curl --silent --request POST "https://${WEB_SERVER_HOSTNAME}/aws_mwaa/cli" \
+  --header "Authorization: Bearer ${CLI_TOKEN}" \
+  --header "Content-Type: text/plain" \
+  --data-raw "dags unpause ${DAG_NAME}")
+
+# Optional: Print unpause output
+echo "Unpause Result:"
+echo "$UNPAUSE_RESULT" | jq -r '.stdout' | base64 --decode || echo "[No stdout]"
+echo -e "\nUnpause Errors:"
+echo "$UNPAUSE_RESULT" | jq -r '.stderr' | base64 --decode || echo "[No stderr]"
+
 # Trigger DAG using MWAA CLI endpoint
 CLI_RESULTS=$(curl --silent --request POST "https://${WEB_SERVER_HOSTNAME}/aws_mwaa/cli" \
   --header "Authorization: Bearer ${CLI_TOKEN}" \
