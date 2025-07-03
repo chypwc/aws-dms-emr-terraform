@@ -48,16 +48,17 @@ resource "aws_mwaa_environment" "this" {
     }
   }
 
-  # airflow_configuration_options = {
-  #   "core.load_default_connections" = "false" # prevent MWAA from creating connections
-  #   "core.load_examples"            = "false"
-  #   "webserver.dag_default_view"    = "graph"
-  #   "webserver.dag_orientation"     = "LR" # TB (top-bottom), LR
-  # }
+  airflow_configuration_options = {
+    "core.load_default_connections" = "false" # prevent MWAA from creating connections
+    "core.load_examples"            = "false"
+    "webserver.dag_default_view"    = "graph"
+    "webserver.dag_orientation"     = "LR" # TB (top-bottom), LR
+  }
 
   depends_on = [
     aws_s3_object.dag_script,
-    aws_s3_object.requirements_txt
+    aws_s3_object.requirements_txt,
+    aws_iam_role_policy_attachment.attach_combined_policy
   ]
 }
 
