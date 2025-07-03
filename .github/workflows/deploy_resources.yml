@@ -79,19 +79,19 @@ jobs:
         run: terraform plan
 
       - name: Terraform Apply S3
-        if: ${{ github.event.inputs.deployS3 == 'true' && github.ref == 'refs/heads/main'}} # apply only on main
+        if: ${{ github.event.inputs.deployS3 == 'true' }} # && github.ref == 'refs/heads/main' : apply only on main
         run: terraform apply -auto-approve -target=module.s3
 
       - name: Terraform Apply Glue Databases and Tables
-        if: ${{ github.event.inputs.deployGlueTables == 'true' && github.ref == 'refs/heads/main'}}
+        if: ${{ github.event.inputs.deployGlueTables == 'true' }}
         run: terraform apply -auto-approve -target=module.glue_catalog_table
 
       - name: Terraform Apply VPC, EC2
-        if: ${{ github.event.inputs.deployEC2 == 'true' && github.ref == 'refs/heads/main'}}
+        if: ${{ github.event.inputs.deployEC2 == 'true' }}
         run: terraform apply -auto-approve -target=module.vpc -target=module.ec2
 
       - name: Terraform Apply DMS
-        if: ${{ github.event.inputs.deployDMS == 'true' && github.ref == 'refs/heads/main'}}
+        if: ${{ github.event.inputs.deployDMS == 'true'}}
         run: terraform apply -auto-approve -target=module.dms
 
       - name: Extract source bucket from tfvars
@@ -100,25 +100,16 @@ jobs:
           SOURCE_BUCKET=$(grep 'source_bucket' ./terraform.tfvars | cut -d '=' -f2 | tr -d ' "')
           echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> $GITHUB_ENV
 
-      # - name: Compute hash and rename script
-      #   run: |
-      #     HASH=$(sha256sum scripts/bronze_to_silver.py | awk '{print $1}')
-      #     cp ./scripts/pyspark/bronze_to_silver.py ./scripts/pyspark/scripts/bronze_to_silver_$HASH.py
-      #     echo "SCRIPT_HASH=$HASH" >> $GITHUB_ENV
-
-      - name: Upload pyspark script to S3
-        if: ${{ github.event.inputs.deployEMR == 'true' }}
-        run: |
-          aws s3 cp ./../../scripts/pyspark/bronze_to_silver.py s3://$SOURCE_BUCKET/scripts/pyspark/
-          # aws s3 cp ./scripts/pyspark/bronze_to_silver_$HASH.py s3://$SOURCE_BUCKET/scripts/pyapark/
-
       # upload script to S3 and deploy EMR script
-      - name: Terraform Apply EMR
-        if: ${{ github.event.inputs.deployEMR == 'true' && github.ref == 'refs/heads/main'}}
+      - name: Terraform Apply EMR IAM policies, pyspark script
+        if: ${{ github.event.inputs.deployEMR == 'true' }}
         run: |
           terraform apply -auto-approve -target=module.emr
 
-      - name: Upload dag script to S3
+      - name: Terraform Apply MWAA
         if: ${{ github.event.inputs.deployMWAA == 'true' }}
         run: |
-          aws s3 cp ./../../scripts/dag/dms_to_emr_pipeline.py s3://$SOURCE_BUCKET/scripts/dag/
+          terraform apply -auto-approve -target=module.mwaa
+
+      - name: Trigger DAG
+        run:

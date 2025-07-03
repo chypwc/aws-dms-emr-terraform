@@ -310,11 +310,10 @@ resource "aws_security_group" "mwaa" {
   }
 
   ingress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.bastion.id]
-    description     = "Allow HTTPS from bastion or other service"
+    from_port = 0
+    to_port   = 0
+    protocol  = "tcp"
+    self      = true
   }
 
   tags = {
