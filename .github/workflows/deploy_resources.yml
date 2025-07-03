@@ -132,7 +132,7 @@ jobs:
           echo "Connecting to Bastion Host: $PUBLIC_IP"
 
           # Copy the trigger script to EC2 (optional)
-          scp -i aws_key -o StrictHostKeyChecking=no ../../scripts/trigger_dag.sh ec2-user@$PUBLIC_IP:~/trigger_dag.sh
+          scp -q -i aws_key -o StrictHostKeyChecking=no ../../scripts/trigger_dag.sh ec2-user@$PUBLIC_IP:~/trigger_dag.sh
 
           # Run the script remotely
           ssh -i aws_key -o StrictHostKeyChecking=no ec2-user@$PUBLIC_IP "bash ~/trigger_dag.sh"
