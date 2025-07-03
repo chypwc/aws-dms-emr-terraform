@@ -18,9 +18,11 @@ fi
 # Remove existing aws CLI v1 if needed
 sudo rm -rf /usr/bin/aws
 
+# Clean up any previous installs
+rm -rf ./aws awscliv2.zip
 # Install AWS CLI v2
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip -q awscliv2.zip
+unzip -o -q awscliv2.zip
 sudo ./aws/install
 export PATH=/usr/local/bin:$PATH  # ensure the new CLI is found first
 aws --version  # should show aws-cli/2.x.x
