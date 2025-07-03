@@ -11,7 +11,7 @@ resource "aws_iam_role" "ec2_role" {
       Action = "sts:AssumeRole",
       Effect = "Allow",
       Principal = {
-        Service = "ec2.amazonaws.com"
+        Service = ["ec2.amazonaws.com", "airflow.amazonaws.com"]
       }
     }]
   })
@@ -36,6 +36,45 @@ resource "aws_iam_role_policy" "secrets_access" {
         ],
         Effect   = "Allow",
         Resource = "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:postgresql_dms-*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "mwaa_access" {
+  name = "mwaa-access"
+  role = aws_iam_role.ec2_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid    = "VisualEditor0",
+        Effect = "Allow",
+        Action = [
+          "airflow:CreateCliToken",
+          "airflow:GetEnvironment",
+          "airflow:PublishMetrics",
+          "airflow:CreateWebLoginToken"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ec2:DescribeInstances",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVpcs",
+          "ec2:DescribeSecurityGroups"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "execute-api:Invoke"
+        ],
+        Resource = "arn:aws:execute-api:ap-southeast-2:794038230051:*/*/*/aws_mwaa/cli"
       }
     ]
   })

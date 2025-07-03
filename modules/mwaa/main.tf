@@ -14,7 +14,7 @@ resource "aws_mwaa_environment" "this" {
   name                 = local.mwaa_env_name
   airflow_version      = "2.10.3"
   environment_class    = "mw1.micro"
-  dag_s3_path          = "scripts/mwaa/dag/"
+  dag_s3_path          = "scripts/mwaa/dags/"
   requirements_s3_path = "scripts/mwaa/requirements.txt"
   # plugins_s3_path      = "scripts/mwaa/plugins/"
   source_bucket_arn  = var.dag_bucket_arn
@@ -48,12 +48,17 @@ resource "aws_mwaa_environment" "this" {
     }
   }
 
-  airflow_configuration_options = {
-    "core.load_default_connections" = "false" # prevent MWAA from creating connections
-    "core.load_examples"            = "false"
-    "webserver.dag_default_view"    = "graph"
-    "webserver.dag_orientation"     = "TB"
-  }
+  # airflow_configuration_options = {
+  #   "core.load_default_connections" = "false" # prevent MWAA from creating connections
+  #   "core.load_examples"            = "false"
+  #   "webserver.dag_default_view"    = "graph"
+  #   "webserver.dag_orientation"     = "LR" # TB (top-bottom), LR
+  # }
+
+  depends_on = [
+    aws_s3_object.dag_script,
+    aws_s3_object.requirements_txt
+  ]
 }
 
 resource "aws_iam_role" "mwaa_exec" {
@@ -65,7 +70,10 @@ resource "aws_iam_role" "mwaa_exec" {
       {
         Effect = "Allow",
         Principal = {
-          Service = "airflow-env.amazonaws.com"
+          Service = [
+            "airflow.amazonaws.com",
+            "airflow-env.amazonaws.com"
+          ]
         },
         Action = "sts:AssumeRole"
       }
@@ -165,9 +173,10 @@ resource "aws_iam_policy" "mwaa_combined_policy" {
         Action = [
           "airflow:PublishMetrics",
           "airflow:GetEnvironment",
-          "airflow:CreateCliToken"
+          "airflow:CreateCliToken",
+          "airflow:WebLogin"
         ],
-        Resource = "arn:aws:airflow:${var.region}:${data.aws_caller_identity.current.account_id}:environment/${local.mwaa_env_name}"
+        Resource = "arn:aws:airflow:${var.region}:${data.aws_caller_identity.current.account_id}:environment/*"
       },
 
       # DMS actions
@@ -177,7 +186,7 @@ resource "aws_iam_policy" "mwaa_combined_policy" {
           "dms:StartReplicationTask",
           "dms:DescribeReplicationTasks"
         ],
-        Resource = var.dms_task_arn
+        Resource = "arn:aws:dms:${var.region}:${data.aws_caller_identity.current.account_id}:*:*"
       },
 
       # EMR actions (correct service prefix)
@@ -190,6 +199,22 @@ resource "aws_iam_policy" "mwaa_combined_policy" {
           "elasticmapreduce:AddJobFlowSteps",
           "elasticmapreduce:DescribeStep",
           "iam:PassRole"
+        ],
+        Resource = "*"
+      },
+
+      # EC2/VPC permissions for MWAA network operations
+      {
+        Effect = "Allow",
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DeleteNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:AttachNetworkInterface",
+          "ec2:DetachNetworkInterface",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVpcs"
         ],
         Resource = "*"
       },
@@ -227,7 +252,7 @@ resource "aws_iam_role_policy_attachment" "attach_combined_policy" {
 # DAG script
 #-------------------
 resource "local_file" "generated_dag" {
-  content = templatefile("${path.module}/../../scripts/dag/dms_to_emr_pipeline.py.tmpl", {
+  content = templatefile("${path.module}/../../scripts/dags/dms_to_emr_pipeline.py.tmpl", {
     dms_task_arn         = var.dms_task_arn
     script_s3_path       = "s3://${var.dag_bucket_name}/scripts/pyspark/bronze_to_silver.py"
     log_uri              = "s3://${var.dag_bucket_name}/emr-logs/"
@@ -240,38 +265,27 @@ resource "local_file" "generated_dag" {
     # emr_ec2_instance_profile = var.emr_ec2_instance_profile
   })
 
-  filename = "${path.module}/../../scripts/dag/dms_to_emr_pipeline.py"
+  filename = "${path.module}/../../scripts/dags/dms_to_emr_pipeline.py"
 }
 
 
 resource "aws_s3_object" "dag_script" {
   bucket = var.dag_bucket_name
-  key    = "scripts/mwaa/dag/dms_to_emr_pipeline.py"
-  source = "${path.module}/../../scripts/dag/dms_to_emr_pipeline.py"
-  etag   = filemd5("${path.module}/../../scripts/dag/dms_to_emr_pipeline.py")
+  key    = "scripts/mwaa/dags/dms_to_emr_pipeline.py"
+  source = local_file.generated_dag.filename
+  etag   = md5(local_file.generated_dag.content)
+
+  depends_on = [local_file.generated_dag]
 }
 
 resource "aws_s3_object" "requirements_txt" {
   bucket = var.dag_bucket_name
   key    = "scripts/mwaa/requirements.txt"
-  source = "${path.module}/../../scripts/requirements"
+  source = "${path.module}/../../scripts/requirements.txt"
   etag   = filemd5("${path.module}/../../scripts/requirements.txt")
 }
 
 
-# Replace with your values
-# DMS_TASK_ARN = "arn:aws:dms:ap-southeast-2:ACCOUNT_ID:task:PFEKC7XIOVGTXBULAGD4BTNCXM"
-# SCRIPT_S3_PATH = "s3://source-bucket-chien/scripts/pyspark/bronze_to_silver.py"
-# LOG_URI = "s3://source-bucket-chien/emr-logs/"
-# EMR_ROLE = "EMR_DefaultRole"
-# EC2_ROLE = "EMR_EC2_DefaultRole"
-# SUBNET_ID = "subnet-0e85153f57935e0cd"
-# EMR_MASTER_SG_ID = "sg-033e5772afa0c3d12"
-# EMR_CORE_SG_ID = "sg-0decf60199244d66a"
-# EMR_SERVICE_SG_ID = "sg-07e6dd4da3823202b"
 
-# EMR_SECURITY_GROUPS = {
-#     "master": EMR_MASTER_SG_ID,
-#     "core": EMR_CORE_SG_ID,
-#     "service": EMR_SERVICE_SG_ID
-# }
+
+

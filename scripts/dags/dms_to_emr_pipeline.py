@@ -83,15 +83,13 @@ with DAG(
     #     replication_task_arn=DMS_TASK_ARN,
     #     start_replication_task_type="start-replication"
     # )
-
     wait_for_dms = DmsTaskCompletedSensor(
     task_id="wait_for_dms_completion",
     replication_task_arn=DMS_TASK_ARN,
     aws_conn_id="aws_default",
     poke_interval=60,  # check every 60 seconds
     timeout=60 * 30    # timeout after 30 minutes
-    )
-
+)
     create_emr_cluster = EmrCreateJobFlowOperator(
         task_id="create_emr_cluster",
         job_flow_overrides={

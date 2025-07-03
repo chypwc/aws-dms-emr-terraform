@@ -25,6 +25,11 @@ resource "aws_iam_role_policy_attachment" "emr_service_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole"
 }
 
+# resource "aws_iam_role_policy_attachment" "emr_service_role_managed_ec2" {
+#   role       = aws_iam_role.emr_service_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+# }
+
 # EMR EC2 Instance Role
 resource "aws_iam_role" "emr_ec2_instance_role" {
   name = "EMR_EC2_DefaultRole"
