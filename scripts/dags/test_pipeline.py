@@ -15,25 +15,26 @@ DMS_TASK_ARN = "arn:aws:dms:ap-southeast-2:794038230051:task:PFEKC7XIOVGTXBULAGD
 SCRIPT_S3_PATH = "s3://source-bucket-chien/scripts/pyspark/bronze_to_silver.py"
 LOG_URI = "s3://source-bucket-chien/emr-logs/"
 EMR_ROLE = "EMR_DefaultRole"
-EC2_INSTANCE_PROFILE = "emr_ec2_instance_profile"
+EC2_ROLE = "emr_ec2_instance_profile" # "EMR_EC2_DefaultRole"
 SUBNET_ID = "subnet-0e85153f57935e0cd"
 EMR_SECURITY_GROUPS = {
     "master": "sg-033e5772afa0c3d12",
     "core": "sg-0decf60199244d66a",
     "service": "sg-07e6dd4da3823202b"
 }
-
+EC2_INSTANCE_PROFILE = 'emr_ec2_instance_profile'
 
 default_args = {
     'owner': 'airflow',
     'retry_delay': timedelta(minutes=5),
 }
 
+
 def try_start_dms(**kwargs):
     dms = boto3.client("dms", region_name="ap-southeast-2")
     task_arn = DMS_TASK_ARN
 
-    # Get current status
+    # Get the current status of the replication task
     task = dms.describe_replication_tasks(
         Filters=[{
             'Name': 'replication-task-arn',
@@ -41,20 +42,21 @@ def try_start_dms(**kwargs):
         }]
     )['ReplicationTasks'][0]
 
-    status = task['Status'].lower()
+    status = task['Status']
     print(f"Current DMS task status: {status}")
 
-    # Decide start type
-    if status in ["ready"]:
-        start_type = "start-replication"
-    elif status in ["stopped", "failed", "error", "load complete", "running with errors"]:
-        # You want a fresh run
-        start_type = "reload-target"
-    elif status in ["starting", "modifying", "creating"]:
-        raise Exception(f"DMS task is currently {status}. Wait and retry.")
+    # Decide which start type to use
+    if status == "stopped":
+        start_type = "resume-processing"
+    elif status == "creating":
+        raise Exception("DMS task is still creating. Please wait and try again.")
     elif status == "running":
         print("DMS task is already running. No action taken.")
         return
+    elif status in ["load completed" "failed"]:
+        start_type = "reload-target"
+    elif status == ["ready"]:
+        start_type = "start-replication"
     else:
         raise Exception(f"Unhandled DMS task status: {status}")
 
@@ -63,6 +65,7 @@ def try_start_dms(**kwargs):
         ReplicationTaskArn=task_arn,
         StartReplicationTaskType=start_type
     )
+
 
 with DAG(
     dag_id="dms_to_emr_pipeline",
@@ -77,12 +80,13 @@ with DAG(
     task_id="try_start_dms",
     python_callable=try_start_dms,
 )
-    
     # start_dms_task = DmsStartTaskOperator(
-    #     task_id="start_dms_task",
-    #     replication_task_arn=DMS_TASK_ARN,
-    #     start_replication_task_type="start-replication"
+    # task_id="start_dms_task",
+    # replication_task_arn=DMS_TASK_ARN,
+    # start_replication_task_type="reload-target",  # "start-replication" or "reload-target", or "resume-processing"
+    # aws_conn_id="aws_default",  # or whatever Airflow connection you're using
     # )
+    
     wait_for_dms = DmsTaskCompletedSensor(
     task_id="wait_for_dms_completion",
     replication_task_arn=DMS_TASK_ARN,
@@ -90,6 +94,7 @@ with DAG(
     poke_interval=60,  # check every 60 seconds
     timeout=60 * 30    # timeout after 30 minutes
 )
+
     create_emr_cluster = EmrCreateJobFlowOperator(
         task_id="create_emr_cluster",
         job_flow_overrides={
@@ -110,7 +115,7 @@ with DAG(
                         "InstanceCount": 1,
                     }
                 ],
-                # "Ec2InstanceProfile": EC2_INSTANCE_PROFILE,
+                
                 "Ec2SubnetId": SUBNET_ID,
                 "EmrManagedMasterSecurityGroup": EMR_SECURITY_GROUPS["master"],
                 "EmrManagedSlaveSecurityGroup": EMR_SECURITY_GROUPS["core"],
@@ -133,7 +138,7 @@ with DAG(
                 }
             }
         ],
-            "JobFlowRole": EC2_INSTANCE_PROFILE,
+            "JobFlowRole": EC2_ROLE,
             "ServiceRole": EMR_ROLE,
             "VisibleToAllUsers": True,
         }
@@ -171,3 +176,7 @@ with DAG(
 
     # DAG dependencies
     start_dms_task >> wait_for_dms >> create_emr_cluster >> add_spark_step >> watch_spark_step >> terminate_emr_cluster
+    # create_emr_cluster >> add_spark_step >> watch_spark_step >> terminate_emr_cluster
+
+
+

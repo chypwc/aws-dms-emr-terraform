@@ -63,8 +63,8 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      # - name: Install boto3 for external data script
-      #   run: pip3 install boto3
+      - name: Install boto3 for external data script
+        run: pip3 install boto3
 
       - name: Terraform Init
         run: terraform init
@@ -79,46 +79,62 @@ jobs:
         run: terraform plan
 
       - name: Terraform Apply S3
-        if: ${{ github.event.inputs.deployS3 == 'true' && github.ref == 'refs/heads/main'}} # apply only on main
+        if: ${{ github.event.inputs.deployS3 == 'true' }} # && github.ref == 'refs/heads/main' : apply only on main
         run: terraform apply -auto-approve -target=module.s3
 
       - name: Terraform Apply Glue Databases and Tables
-        if: ${{ github.event.inputs.deployGlueTables == 'true' && github.ref == 'refs/heads/main'}}
+        if: ${{ github.event.inputs.deployGlueTables == 'true' }}
         run: terraform apply -auto-approve -target=module.glue_catalog_table
 
       - name: Terraform Apply VPC, EC2
-        if: ${{ github.event.inputs.deployEC2 == 'true' && github.ref == 'refs/heads/main'}}
-        run: terraform apply -auto-approve -target=module.vpc -target=module.ec2
+        if: ${{ github.event.inputs.deployEC2 == 'true' }}
+        run: |
+          terraform refresh
+          terraform apply -auto-approve -target=module.vpc -target=module.ec2
 
       - name: Terraform Apply DMS
-        if: ${{ github.event.inputs.deployDMS == 'true' && github.ref == 'refs/heads/main'}}
-        run: terraform apply -auto-approve -target=module.dms
-
-      - name: Extract source bucket from tfvars
-        id: extract-vars
+        if: ${{ github.event.inputs.deployDMS == 'true'}}
         run: |
-          SOURCE_BUCKET=$(grep 'source_bucket' ./terraform.tfvars | cut -d '=' -f2 | tr -d ' "')
-          echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> $GITHUB_ENV
+          terraform refresh
+          terraform apply -auto-approve -target=module.dms
 
-      # - name: Compute hash and rename script
+      # - name: Extract source bucket from tfvars
+      #   id: extract-vars
       #   run: |
-      #     HASH=$(sha256sum scripts/bronze_to_silver.py | awk '{print $1}')
-      #     cp ./scripts/pyspark/bronze_to_silver.py ./scripts/pyspark/scripts/bronze_to_silver_$HASH.py
-      #     echo "SCRIPT_HASH=$HASH" >> $GITHUB_ENV
-
-      - name: Upload pyspark script to S3
-        if: ${{ github.event.inputs.deployEMR == 'true' }}
-        run: |
-          aws s3 cp ./../../scripts/pyspark/bronze_to_silver.py s3://$SOURCE_BUCKET/scripts/pyspark/
-          # aws s3 cp ./scripts/pyspark/bronze_to_silver_$HASH.py s3://$SOURCE_BUCKET/scripts/pyapark/
+      #     SOURCE_BUCKET=$(grep 'source_bucket' ./terraform.tfvars | cut -d '=' -f2 | tr -d ' "')
+      #     echo "SOURCE_BUCKET=$SOURCE_BUCKET" >> $GITHUB_ENV
 
       # upload script to S3 and deploy EMR script
-      - name: Terraform Apply EMR
-        if: ${{ github.event.inputs.deployEMR == 'true' && github.ref == 'refs/heads/main'}}
+      - name: Terraform Apply EMR IAM roles, pyspark script
+        if: ${{ github.event.inputs.deployEMR == 'true' }}
         run: |
+          terraform refresh
           terraform apply -auto-approve -target=module.emr
 
-      - name: Upload dag script to S3
+      - name: Terraform Apply MWAA
         if: ${{ github.event.inputs.deployMWAA == 'true' }}
         run: |
-          aws s3 cp ./../../scripts/dag/dms_to_emr_pipeline.py s3://$SOURCE_BUCKET/scripts/dag/
+          terraform refresh
+          terraform apply -auto-approve -target=module.mwaa
+
+      - name: Trigger MWAA DAG via Bastion
+        run: |
+          # Save private key to a file
+          echo "$BASTION_SSH_KEY" > aws_key
+          chmod 600 aws_key
+
+          # Get Bastion EC2 Public IP
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=dev-bastion-ec2" "Name=instance-state-name,Values=running" \
+            --query "Reservations[*].Instances[*].PublicIpAddress" \
+            --output text)
+
+          echo "Connecting to Bastion Host: $PUBLIC_IP"
+
+          # Copy the trigger script to EC2 (optional)
+          scp -q -i aws_key -o StrictHostKeyChecking=no ../../scripts/trigger_dag.sh ec2-user@$PUBLIC_IP:~/trigger_dag.sh
+
+          # Run the script remotely
+          ssh -i aws_key -o StrictHostKeyChecking=no ec2-user@$PUBLIC_IP "bash ~/trigger_dag.sh"
+        env:
+          BASTION_SSH_KEY: ${{ secrets.BASTION_SSH_KEY }}

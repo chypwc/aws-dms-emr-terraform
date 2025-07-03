@@ -25,6 +25,11 @@ resource "aws_iam_role_policy_attachment" "emr_service_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole"
 }
 
+# resource "aws_iam_role_policy_attachment" "emr_service_role_managed_ec2" {
+#   role       = aws_iam_role.emr_service_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+# }
+
 # EMR EC2 Instance Role
 resource "aws_iam_role" "emr_ec2_instance_role" {
   name = "EMR_EC2_DefaultRole"
@@ -111,71 +116,82 @@ resource "aws_iam_instance_profile" "emr_ec2_instance_profile" {
   role = aws_iam_role.emr_ec2_instance_role.name
 }
 
-# EMR cluster
-resource "aws_emr_cluster" "transform-cluster" {
-  name          = "features-emr-cluster"
-  release_label = "emr-7.6.0"
-  applications  = ["Hive", "Spark"]
 
-  service_role     = aws_iam_role.emr_service_role.arn
-  autoscaling_role = aws_iam_role.emr_service_role.arn
-
-  ec2_attributes {
-    subnet_id                         = var.subnet_id
-    emr_managed_master_security_group = var.emr_managed_master_security_group
-    emr_managed_slave_security_group  = var.emr_core_sg_id
-    service_access_security_group     = var.emr_service_access_sg_id
-    instance_profile                  = aws_iam_instance_profile.emr_ec2_instance_profile.arn
-    key_name                          = var.key_name # ssh key pair
-  }
-
-  master_instance_group {
-    instance_type  = "m5.xlarge"
-    instance_count = 1
-  }
-
-  core_instance_group {
-    instance_type  = "m5.xlarge"
-    instance_count = 1
-  }
-
-  log_uri                           = "s3://${var.log_bucket}/emr-logs/"
-  termination_protection            = false
-  keep_job_flow_alive_when_no_steps = true
-
-  configurations_json = jsonencode([
-    {
-      Classification = "spark-hive-site"
-      Properties = {
-        "hive.metastore.client.factory.class" = "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory"
-        "hive.metastore.glue.catalogid"       = data.aws_caller_identity.current.account_id
-      }
-    },
-    {
-      Classification = "iceberg-defaults"
-      Properties = {
-        "iceberg.enabled" = "true"
-      }
-    }
-  ])
-
-  step {
-    name              = "pyspark_step"
-    action_on_failure = "CONTINUE"
-
-    hadoop_jar_step {
-      jar = "command-runner.jar"
-      args = [
-        "spark-submit",
-        "--deploy-mode", "cluster",
-        "--master", "yarn",
-        "s3://${var.script_bucket}/scripts/pyspark/bronze_to_silver.py"
-      ]
-    }
-  }
-
-  tags = {
-    Name = "EMRCluster"
-    Env  = var.env
-  }
+# Upload PySpark script to S3
+resource "aws_s3_object" "pyspark_script" {
+  bucket = var.script_bucket
+  key    = "scripts/pyspark/bronze_to_silver.py"
+  source = "${path.module}/../../scripts/pyspark/bronze_to_silver.py"
+  etag   = filemd5("${path.module}/../../scripts/pyspark/bronze_to_silver.py")
 }
+
+# -------------------------------------------------------------------
+# EMR cluster : removed since DAG creates EMR cluster and step
+# -------------------------------------------------------------------
+# resource "aws_emr_cluster" "transform-cluster" {
+#   name          = "features-emr-cluster"
+#   release_label = "emr-7.6.0"
+#   applications  = ["Hive", "Spark"]
+
+#   service_role     = aws_iam_role.emr_service_role.arn
+#   autoscaling_role = aws_iam_role.emr_service_role.arn
+
+#   ec2_attributes {
+#     subnet_id                         = var.subnet_id
+#     emr_managed_master_security_group = var.emr_managed_master_security_group
+#     emr_managed_slave_security_group  = var.emr_core_sg_id
+#     service_access_security_group     = var.emr_service_access_sg_id
+#     instance_profile                  = aws_iam_instance_profile.emr_ec2_instance_profile.arn
+#     key_name                          = var.key_name # ssh key pair
+#   }
+
+#   master_instance_group {
+#     instance_type  = "m5.xlarge"
+#     instance_count = 1
+#   }
+
+#   core_instance_group {
+#     instance_type  = "m5.xlarge"
+#     instance_count = 1
+#   }
+
+#   log_uri                           = "s3://${var.log_bucket}/emr-logs/"
+#   termination_protection            = false
+#   keep_job_flow_alive_when_no_steps = true
+
+#   configurations_json = jsonencode([
+#     {
+#       Classification = "spark-hive-site"
+#       Properties = {
+#         "hive.metastore.client.factory.class" = "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory"
+#         "hive.metastore.glue.catalogid"       = data.aws_caller_identity.current.account_id
+#       }
+#     },
+#     {
+#       Classification = "iceberg-defaults"
+#       Properties = {
+#         "iceberg.enabled" = "true"
+#       }
+#     }
+#   ])
+
+#   step {
+#     name              = "pyspark_step"
+#     action_on_failure = "CONTINUE"
+
+#     hadoop_jar_step {
+#       jar = "command-runner.jar"
+#       args = [
+#         "spark-submit",
+#         "--deploy-mode", "cluster",
+#         "--master", "yarn",
+#         "s3://${var.script_bucket}/scripts/pyspark/bronze_to_silver.py"
+#       ]
+#     }
+#   }
+
+#   tags = {
+#     Name = "EMRCluster"
+#     Env  = var.env
+#   }
+# }

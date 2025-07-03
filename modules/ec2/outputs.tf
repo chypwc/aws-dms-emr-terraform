@@ -10,3 +10,4 @@ output "postgres_private_ip" {
   description = "Private IP of the PostgreSQL EC2 instance"
   value       = aws_instance.postgres.private_ip
 }
+

@@ -310,11 +310,10 @@ resource "aws_security_group" "mwaa" {
   }
 
   ingress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.bastion.id]
-    description     = "Allow HTTPS from bastion or other service"
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = true
   }
 
   tags = {
@@ -322,3 +321,45 @@ resource "aws_security_group" "mwaa" {
   }
 }
 
+
+resource "aws_security_group_rule" "mwaa_ingress_from_bastion" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.mwaa.id
+  source_security_group_id = aws_security_group.bastion.id
+  description              = "Allow bastion EC2"
+}
+
+## MWAA VPC Endpoints
+# resource "aws_vpc_endpoint" "airflow_env" {
+#   vpc_id             = aws_vpc.main.id
+#   service_name       = "com.amazonaws.${var.region}.airflow-env"
+#   vpc_endpoint_type  = "Interface"
+#   subnet_ids         = aws_subnet.private[*].id
+#   security_group_ids = [aws_security_group.mwaa.id]
+# }
+
+# resource "aws_vpc_endpoint" "sqs" {
+#   vpc_id             = aws_vpc.main.id
+#   service_name       = "com.amazonaws.${var.region}.sqs"
+#   vpc_endpoint_type  = "Interface"
+#   subnet_ids         = aws_subnet.private[*].id
+#   security_group_ids = [aws_security_group.mwaa.id]
+# }
+
+# resource "aws_vpc_endpoint" "logs" {
+#   vpc_id             = aws_vpc.main.id
+#   service_name       = "com.amazonaws.${var.region}.logs"
+#   vpc_endpoint_type  = "Interface"
+#   subnet_ids         = aws_subnet.private[*].id
+#   security_group_ids = [aws_security_group.mwaa.id]
+# }
+
+# resource "aws_vpc_endpoint" "s3" {
+#   vpc_id            = aws_vpc.main.id
+#   service_name      = "com.amazonaws.${var.region}.s3"
+#   vpc_endpoint_type = "Gateway"
+#   route_table_ids   = [aws_route_table.private.id]
+# }

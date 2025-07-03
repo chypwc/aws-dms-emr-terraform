@@ -1,3 +1,4 @@
+"""Airflow DAG to run DMS -> wait -> EMR Spark job"""
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.providers.amazon.aws.operators.dms import DmsStartTaskOperator
@@ -122,8 +123,6 @@ with DAG(
                 "Classification": "spark-hive-site",
                 "Properties": {
                     "hive.metastore.client.factory.class": "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory",
-                    # Optionally provide catalog ID explicitly:
-                    # "hive.metastore.glue.catalogid": "123456789012"
                 }
             },
             {
@@ -170,4 +169,5 @@ with DAG(
     )
 
     # DAG dependencies
-    start_dms_task >> wait_for_dms >> create_emr_cluster >> add_spark_step >> watch_spark_step >> terminate_emr_cluster
+    # start_dms_task >> wait_for_dms >> create_emr_cluster >> add_spark_step >> watch_spark_step >> terminate_emr_cluster
+    create_emr_cluster >> add_spark_step >> watch_spark_step

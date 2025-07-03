@@ -156,20 +156,12 @@ class DataProcessor:
 
             logger.info("Writing transformed tables to Iceberg format in silver database...")
             
-            # Write reference tables (typically smaller, no partitioning needed)
+            # Write other tables
             for name, df in [
                 ("products", products_df),
                 ("aisles", aisles_df),
                 ("departments", departments_df),
-            ]:
-                logger.info(f"Writing reference table: {name}")
-                self.write_table(df, name)
-
-            # Write fact tables (larger tables, consider partitioning)
-            logger.info("Writing orders table (partitioned by eval_set)")
-            
-            # Write other tables
-            for name, df in [
+                ("orders", orders_df),
                 ("order_products__prior", order_products__prior_df2),
                 ("order_products__train", order_products__train_df2),
                 ("order_products", order_products),
