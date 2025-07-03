@@ -130,6 +130,6 @@ jobs:
           scp -i aws_key -o StrictHostKeyChecking=no trigger_dag.sh ec2-user@$PUBLIC_IP:~/trigger_dag.sh
 
           # Run the script remotely
-          ssh -i id_rsa -o StrictHostKeyChecking=no ec2-user@$PUBLIC_IP "bash ~/trigger_dag.sh"
+          ssh -i aws_key -o StrictHostKeyChecking=no ec2-user@$PUBLIC_IP "bash ~/trigger_dag.sh"
         env:
           BASTION_SSH_KEY: ${{ secrets.BASTION_SSH_KEY }}
