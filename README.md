@@ -76,6 +76,15 @@ This project uses Terraform to provision and manage all AWS resources in a repro
 
 Terraform modules are organized to support modular deployment (e.g., vpc, mwaa, emr, dms, glue, s3), and state is optionally stored in S3 for remote collaboration.
 
+⚙️ Dynamic DAG Generation
+
+Terraform is also used to automatically generate and deploy Airflow DAGs. This is achieved by:
+• Using Terraform’s templatefile() function to fill a Python DAG template with live AWS resource values (e.g., DMS task ARN, EMR subnet ID, S3 paths).
+• Writing the rendered Python file to the appropriate DAGs folder (e.g., scripts/dags/dms_to_emr_pipeline.py).
+• Uploading the generated DAG to the MWAA DAGs S3 bucket as part of deployment.
+
+This approach ensures that your DAG logic stays tightly integrated with the actual infrastructure, reducing manual synchronization errors and enabling seamless CI/CD workflows.
+
 ### 🗂 Directory Structure
 
 ```
