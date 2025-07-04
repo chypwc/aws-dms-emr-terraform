@@ -2,6 +2,8 @@
 
 This project sets up a secure, end-to-end data pipeline on AWS, using services including EC2, DMS, S3, Glue, EMR, and MWAA (Airflow). The pipeline extracts data from a PostgreSQL server running in a private subnet, transforms it using Spark on EMR, and stores the result in Apache Iceberg format for analytics and lakehouse use cases.
 
+![](/images/image-2.png)
+
 ### 🔧 Components
 
 1. EC2 PostgreSQL Server (Private Subnet)
@@ -29,8 +31,8 @@ This project sets up a secure, end-to-end data pipeline on AWS, using services i
 
 5. AWS Glue Data Catalog
 
-   - Crawlers or manual table definitions map S3 data to schema.
-   - Tables are referenced by the EMR Spark job for transformation and Iceberg writing.
+   - Manual table definitions map S3 data to schema.
+   - Databases and Tables are referenced by the EMR Spark job for transformation and Iceberg writing.
 
 6. Amazon EMR
 
@@ -56,7 +58,7 @@ This project sets up a secure, end-to-end data pipeline on AWS, using services i
    - EMR and Glue have access to S3 buckets, Glue tables, and logs
    - All components use private subnets, with access enabled via NAT gateway and VPC endpoints as needed.
 
-![alt text](image-1.png)
+![](images/image-1.png)
 
 ### 🗂 Directory Structure
 
