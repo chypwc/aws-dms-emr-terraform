@@ -79,3 +79,32 @@ This project sets up a secure, end-to-end data pipeline on AWS, using services i
 │       └── dms_to_emr_pipeline.py
 └── README.md
 ```
+
+🚀 Getting Started
+
+1. Terraform Deployment
+
+Run the pipeline components selectively via GitHub Actions or CLI:
+
+```
+terraform init
+terraform plan
+terraform apply -target=module.s3
+terraform apply -target=module.vpc -target=module.ec2
+terraform apply -target=module.glue_catalog_table
+terraform apply -target=module.emr
+terraform apply -target=module.mwaa
+```
+
+2. Trigger the DAG
+
+The GitHub Actions workflow triggers Aifglow DAG through Bastion:
+
+```
+./scripts/trigger_dag.sh
+```
+
+🧑‍💻 Author
+
+Chien Hsiang Yeh
+[LinkedIn](https://www.linkedin.com/in/chienhsiang-yeh/)
