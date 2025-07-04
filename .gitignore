@@ -86,4 +86,4 @@ helpers/foundation-deployer/.steps.json
 go.work.sum
 
 # dags 
-scripts/pyspark/bronze_to_silver.py
+scripts/dags/dms_to_emr_pipeline.py
