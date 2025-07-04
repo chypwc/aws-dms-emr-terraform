@@ -58,6 +58,8 @@ This project sets up a secure, end-to-end data pipeline on AWS, using services i
    - EMR and Glue have access to S3 buckets, Glue tables, and logs
    - All components use private subnets, with access enabled via NAT gateway and VPC endpoints as needed.
 
+### Airflow DAG
+
 ![](images/image-1.png)
 
 ### 🛠 Infrastructure as Code (IaC)
