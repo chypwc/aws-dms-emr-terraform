@@ -125,7 +125,7 @@ terraform apply -target=module.mwaa
 
 2. Trigger the DAG
 
-The GitHub Actions workflow triggers Aifglow DAG through Bastion:
+The GitHub Actions workflow triggers Airflow DAG through Bastion:
 
 ```
 ./scripts/trigger_dag.sh
