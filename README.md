@@ -60,6 +60,20 @@ This project sets up a secure, end-to-end data pipeline on AWS, using services i
 
 ![](images/image-1.png)
 
+### 🛠 Infrastructure as Code (IaC)
+
+This project uses Terraform to provision and manage all AWS resources in a reproducible and scalable way. Key infrastructure components deployed via Terraform include:
+
+- Amazon EC2 instances (PostgreSQL server and bastion host)
+- AWS DMS resources (replication instance, source & target endpoints, and task)
+- Amazon MWAA environment with appropriate IAM roles and S3 DAG deployment
+- Amazon EMR cluster and security configurations
+- S3 buckets for raw and transformed data storage
+- AWS Glue Data Catalog for schema management
+- IAM roles and policies with least privilege access
+
+Terraform modules are organized to support modular deployment (e.g., vpc, mwaa, emr, dms, glue, s3), and state is optionally stored in S3 for remote collaboration.
+
 ### 🗂 Directory Structure
 
 ```
