@@ -84,3 +84,6 @@ helpers/foundation-deployer/.steps.json
 
 # Go multi-module workspace sum
 go.work.sum
+
+# dags 
+scripts/pyspark/bronze_to_silver.py
