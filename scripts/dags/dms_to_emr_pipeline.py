@@ -1,3 +1,5 @@
+"""Airflow DAG to run DMS -> wait -> EMR Spark job"""
+
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.providers.amazon.aws.operators.dms import DmsStartTaskOperator
@@ -11,16 +13,16 @@ import boto3
 from botocore.exceptions import ClientError
 
 # Constants
-DMS_TASK_ARN = "arn:aws:dms:ap-southeast-2:794038230051:task:PFEKC7XIOVGTXBULAGD4BTNCXM"
+DMS_TASK_ARN = "arn:aws:dms:ap-southeast-2:794038230051:task:VSJH5MV37VAO5CY2LOAD3CBEZI"
 SCRIPT_S3_PATH = "s3://source-bucket-chien/scripts/pyspark/bronze_to_silver.py"
 LOG_URI = "s3://source-bucket-chien/emr-logs/"
 EMR_ROLE = "EMR_DefaultRole"
 EC2_INSTANCE_PROFILE = "emr_ec2_instance_profile"
-SUBNET_ID = "subnet-0e85153f57935e0cd"
+SUBNET_ID = "subnet-0e268c3801b839774"
 EMR_SECURITY_GROUPS = {
-    "master": "sg-033e5772afa0c3d12",
-    "core": "sg-0decf60199244d66a",
-    "service": "sg-07e6dd4da3823202b"
+    "master": "sg-02113fbdff3d01a73",
+    "core": "sg-03d595876f8d39441",
+    "service": "sg-021aada090844fa0f"
 }
 
 
@@ -122,8 +124,6 @@ with DAG(
                 "Classification": "spark-hive-site",
                 "Properties": {
                     "hive.metastore.client.factory.class": "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory",
-                    # Optionally provide catalog ID explicitly:
-                    # "hive.metastore.glue.catalogid": "123456789012"
                 }
             },
             {
