@@ -85,3 +85,22 @@ module "mwaa" {
   emr_sg_core              = module.vpc.emr_core_sg_id
   emr_sg_service           = module.vpc.emr_service_access_sg_id
 }
+
+
+module "lambda" {
+  source = "../../modules/lambda"
+
+  name           = "data-ingestion-snowflake"
+  lambda_package = "lambda_package.zip"
+  handler        = "lambda_function.lambda_handler"
+  runtime        = "python3.12"
+  timeout        = 600
+  s3_bucket      = var.source_bucket
+  environment_variables = {
+    S3_OUTPUT_BUCKET      = var.raw_data_bucket
+    SNOWFLAKE_SECRET_NAME = "snowflake"
+  }
+  # tags = {
+  #   Project = "data-pipeline"
+  # }
+}

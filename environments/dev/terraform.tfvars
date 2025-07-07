@@ -20,3 +20,5 @@ key_name      = "Macbook"
 
 # DMS
 postgresql_secret_name = "postgresql_dms"
+
+# lambda functions
