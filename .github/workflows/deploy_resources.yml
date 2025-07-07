@@ -39,7 +39,7 @@ on:
         default: "false"
 
 jobs:
-  terraform:
+  dms-emr:
     name: Run Terraform
     runs-on: ubuntu-latest
 
@@ -70,33 +70,6 @@ jobs:
       - name: Install boto3 for external data script
         run: pip3 install boto3
 
-      - name: Build Snowflake Layer
-        run: |
-          mkdir -p ../../modules/lambda/layers/snowflake/python/lib/python3.12/site-packages
-          pip install \
-            --platform manylinux2014_x86_64 \
-            --target=../../modules/lambda/layers/snowflake/python/lib/python3.12/site-packages \
-            --implementation cp \
-            --python-version 3.12 \
-            --only-binary=:all: --upgrade \
-            snowflake-connector-python
-
-      - name: Build PyArrow Layer
-        run: |
-          mkdir -p ../../modules/lambda/layers/pyarrow/python/lib/python3.12/site-packages
-          pip install \
-            --platform manylinux2014_x86_64 \
-            --target=../../modules/lambda/layers/pyarrow/python/lib/python3.12/site-packages \
-            --implementation cp \
-            --python-version 3.12 \
-            --only-binary=:all: --upgrade \
-            pyarrow
-
-      - name: Zip layers
-        run: |
-          cd ../../modules/lambda/layers/snowflake && zip -r ../snowflake-layer.zip . && cd -
-          cd ../../modules/lambda/layers/pyarrow && zip -r ../pyarrow-layer.zip . && cd -
-
       - name: Terraform Init
         run: terraform init
 
@@ -108,14 +81,6 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan
-
-      - name: Terraform Apply Lambda
-        run: terraform apply -auto-approve -target=module.lambda
-
-      - name: Cleanup layer zips
-        run: |
-          rm -f ../../modules/lambda/snowflake-layer.zip
-          rm -f ../../modules/lambda/pyarrow-layer.zip
 
       - name: Terraform Apply S3
         if: ${{ github.event.inputs.deployS3 == 'true' }} # && github.ref == 'refs/heads/main' : apply only on main

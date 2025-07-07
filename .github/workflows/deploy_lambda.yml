@@ -1,0 +1,95 @@
+name: Deploy AWS resources
+
+on:
+  #   push:
+  #     branches: [main]
+  workflow_dispatch: # allows manual trigger
+    inputs:
+      region:
+        description: "AWS region to deploy to"
+        required: true
+        default: "ap-southeast-2"
+    #   deployLambda:
+    #     description: "Deploy Lambda function?"
+    #     required: true
+    #     default: "false"
+
+jobs:
+  lambda:
+    # if: ${{ github.event.inputs.deployLambda == 'true' }}
+    name: Run Terraform to deploy lambda function
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: environments/dev
+
+    env:
+      TF_VERSION: 1.6.0
+
+    steps:
+      - name: Configure AWS credentials
+        id: creds
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ github.event.inputs.region }}
+
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Install boto3 for external data script
+        run: pip3 install boto3
+
+      - name: Build Snowflake Layer
+        run: |
+          mkdir -p ../../modules/lambda/layers/snowflake/python/lib/python3.12/site-packages
+          pip install \
+            --platform manylinux2014_x86_64 \
+            --target=../../modules/lambda/layers/snowflake/python/lib/python3.12/site-packages \
+            --implementation cp \
+            --python-version 3.12 \
+            --only-binary=:all: --upgrade \
+            snowflake-connector-python
+
+      - name: Build PyArrow Layer
+        run: |
+          mkdir -p ../../modules/lambda/layers/pyarrow/python/lib/python3.12/site-packages
+          pip install \
+            --platform manylinux2014_x86_64 \
+            --target=../../modules/lambda/layers/pyarrow/python/lib/python3.12/site-packages \
+            --implementation cp \
+            --python-version 3.12 \
+            --only-binary=:all: --upgrade \
+            pyarrow
+
+      - name: Zip layers
+        run: |
+          cd ../../modules/lambda/layers/snowflake && zip -r ../snowflake-layer.zip . && cd -
+          cd ../../modules/lambda/layers/pyarrow && zip -r ../pyarrow-layer.zip . && cd -
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply Lambda
+        run: terraform apply -auto-approve -target=module.lambda
+
+      - name: Cleanup layer zips
+        run: |
+          rm -f ../../modules/lambda/snowflake-layer.zip
+          rm -f ../../modules/lambda/pyarrow-layer.zip
