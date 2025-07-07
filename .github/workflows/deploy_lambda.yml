@@ -87,7 +87,9 @@ jobs:
         run: terraform plan
 
       - name: Terraform Apply Lambda
-        run: terraform apply -auto-approve -target=module.lambda
+        run: |
+          terraform refresh
+          terraform apply -auto-approve -target=module.lambda
 
       - name: Cleanup layer zips
         run: |
