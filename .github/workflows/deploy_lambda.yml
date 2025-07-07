@@ -1,4 +1,4 @@
-name: Deploy AWS resources
+name: Deploy Lambda function
 
 on:
   #   push:

@@ -1,4 +1,4 @@
-name: Deploy AWS resources
+name: Deploy DMS-EMR pipeline
 
 on:
   #   push:
