@@ -9,14 +9,13 @@ on:
         description: "AWS region to deploy to"
         required: true
         default: "ap-southeast-2"
-    #   deployLambda:
-    #     description: "Deploy Lambda function?"
-    #     required: true
-    #     default: "false"
+      deployLambda:
+        description: "Deploy Lambda function?"
+        required: true
+        default: "false"
 
 jobs:
   lambda:
-    # if: ${{ github.event.inputs.deployLambda == 'true' }}
     name: Run Terraform to deploy lambda function
     runs-on: ubuntu-latest
 
@@ -44,10 +43,11 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Install boto3 for external data script
-        run: pip3 install boto3
+      #   - name: Install boto3 for external data script
+      #     run: pip3 install boto3
 
       - name: Build Snowflake Layer
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: |
           mkdir -p ../../modules/lambda/layers/snowflake/python/lib/python3.12/site-packages
           pip install \
@@ -59,6 +59,7 @@ jobs:
             snowflake-connector-python
 
       - name: Build PyArrow Layer
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: |
           mkdir -p ../../modules/lambda/layers/pyarrow/python/lib/python3.12/site-packages
           pip install \
@@ -70,28 +71,44 @@ jobs:
             pyarrow
 
       - name: Zip layers
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: |
           cd ../../modules/lambda/layers/snowflake && zip -r ../snowflake-layer.zip . && cd -
           cd ../../modules/lambda/layers/pyarrow && zip -r ../pyarrow-layer.zip . && cd -
 
       - name: Terraform Init
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: terraform init
 
       - name: Terraform Format Check
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: terraform fmt -check
 
       - name: Terraform validate
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: terraform validate
 
       - name: Terraform Plan
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: terraform plan
 
       - name: Terraform Apply Lambda
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: |
           terraform refresh
           terraform apply -auto-approve -target=module.lambda
 
+      - name: Invoke Lambda with test event
+        run: |
+          aws lambda invoke \
+            --function-name data-ingestion-snowflake \
+            --payload '{}' \
+            --region ap-southeast-2 \
+            response.json
+          cat response.json
+
       - name: Cleanup layer zips
+        if: ${{ github.event.inputs.deployLambda == 'true' }}
         run: |
           rm -f ../../modules/lambda/snowflake-layer.zip
           rm -f ../../modules/lambda/pyarrow-layer.zip
