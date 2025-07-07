@@ -33,6 +33,10 @@ on:
         description: "Deploy MWAA dag?"
         required: true
         default: "false"
+      runDAG:
+        description: "Deploy MWAA dag?"
+        required: true
+        default: "false"
 
 jobs:
   terraform:
@@ -118,6 +122,7 @@ jobs:
           terraform apply -auto-approve -target=module.mwaa
 
       - name: Trigger MWAA DAG via Bastion
+        if: ${{ github.event.inputs.runDAG == 'true' }}
         run: |
           # Save private key to a file
           echo "$BASTION_SSH_KEY" > aws_key
@@ -138,3 +143,30 @@ jobs:
           ssh -i aws_key -o StrictHostKeyChecking=no ec2-user@$PUBLIC_IP "bash ~/trigger_dag.sh"
         env:
           BASTION_SSH_KEY: ${{ secrets.BASTION_SSH_KEY }}
+
+      - name: Build Snowflake Layer
+        run: |
+          mkdir -p ../../modules/lambda/layers/snowflake/python/lib/python3.12/site-packages
+          pip install \
+            --platform manylinux2014_x86_64 \
+            --target=../../modules/lambda/layers/snowflake/python/lib/python3.12/site-packages \
+            --implementation cp \
+            --python-version 3.12 \
+            --only-binary=:all: --upgrade \
+            snowflake-connector-python
+
+      - name: Build PyArrow Layer
+        run: |
+          mkdir -p ../../modules/lambda/layers/pyarrow/python/lib/python3.12/site-packages
+          pip install \
+            --platform manylinux2014_x86_64 \
+            --target=../../modules/lambda/layers/pyarrow/python/lib/python3.12/site-packages \
+            --implementation cp \
+            --python-version 3.12 \
+            --only-binary=:all: --upgrade \
+            pyarrow
+
+      - name: Zip layers
+        run: |
+          cd ../../modules/lambda/layers/snowflake && zip -r ../snowflake-layer.zip . && cd -
+          cd ../../modules/lambda/layers/pyarrow && zip -r ../pyarrow-layer.zip . && cd -

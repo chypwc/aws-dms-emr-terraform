@@ -96,6 +96,12 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+
+
+#----------------------
+# Security Group
+#----------------------
+
 ## EC2 Security Groups
 #  Bastion Security Group
 resource "aws_security_group" "bastion" {
@@ -332,7 +338,81 @@ resource "aws_security_group_rule" "mwaa_ingress_from_bastion" {
   description              = "Allow bastion EC2"
 }
 
-## MWAA VPC Endpoints
+# ---------------------
+# VPC endpoints
+# ---------------------
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id       = aws_vpc.main.id
+  service_name = "com.amazonaws.${var.region}.s3"
+  route_table_ids = [
+    aws_route_table.private.id
+  ]
+  vpc_endpoint_type = "Gateway"
+
+  tags = {
+    Name = "${var.env}-s3-endpoint"
+  }
+}
+
+# resource "aws_vpc_endpoint" "glue" {
+#   vpc_id             = aws_vpc.main.id
+#   service_name       = "com.amazonaws.ap-southeast-2.glue"
+#   vpc_endpoint_type  = "Interface"
+#   subnet_ids         = aws_subnet.private[*].id
+#   security_group_ids = [aws_security_group.glue.id] # ✅ REQUIRED
+
+#   private_dns_enabled = true
+
+#   tags = {
+#     Name = "${var.env}-glue-endpoint"
+#   }
+# }
+
+resource "aws_vpc_endpoint" "dms" {
+  service_name       = "com.amazonaws.${var.region}.dms"
+  vpc_id             = aws_vpc.main.id
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.dms_sg.id]
+
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.env}-dms-endpoint"
+  }
+}
+
+resource "aws_vpc_endpoint" "ec2" {
+  service_name       = "com.amazonaws.${var.region}.ec2"
+  vpc_id             = aws_vpc.main.id
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.emr_master_sg.id]
+
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.env}-ec2-endpoint"
+  }
+}
+
+resource "aws_vpc_endpoint" "emr" {
+  service_name       = "com.amazonaws.${var.region}.elasticmapreduce"
+  vpc_id             = aws_vpc.main.id
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.emr_master_sg.id]
+
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.env}-emr-endpoint"
+  }
+}
+
+
+
+## MWAA VPC Endpoints, MWAA will automatically create VPC endpoints
 # resource "aws_vpc_endpoint" "airflow_env" {
 #   vpc_id             = aws_vpc.main.id
 #   service_name       = "com.amazonaws.${var.region}.airflow-env"

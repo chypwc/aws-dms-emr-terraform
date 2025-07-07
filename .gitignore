@@ -78,3 +78,16 @@ go.work.sum
 
 # dags 
 scripts/dags/dms_to_emr_pipeline.py
+
+# virtual env
+*/venv
+
+# lambda layers
+modules/lambda/layers
+
+# Mac system files
+.DS_Store
+
+# lambda package
+scripts/lambda/package
+.zip

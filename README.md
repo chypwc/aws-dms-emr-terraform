@@ -98,7 +98,7 @@ This approach ensures that your DAG logic stays tightly integrated with the actu
 │   ├── dms/                 # DMS instance, endpoints, tasks
 │   ├── emr/                 # EMR cluster and step configuration
 │   ├── mwaa/                # MWAA and DAG bucket config
-│   ├── glue_catalog_table/ # Glue tables pointing to S3
+│   ├── glue_catalog_table/  # Glue tables pointing to S3
 │   └── s3/                  # S3 buckets: raw and processed
 ├── scripts/
 │   ├── trigger_dag.sh       # Trigger MWAA DAG via bastion and CLI token
