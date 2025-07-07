@@ -22,7 +22,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: environments/dev
+        working-directory: environments/dev_lambda
 
     env:
       TF_VERSION: 1.6.0
